@@ -1,0 +1,14 @@
+{
+  "name": "gcss",
+  "version": "1.0.0",
+  "description": "Use a git repo to sync saves remotely",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ed Glendinning",
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
+}
