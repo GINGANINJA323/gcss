@@ -5,7 +5,7 @@ const reader = require('readline').createInterface({
 });
 const fs = require('node:fs/promises');
 const fetch = require('node-fetch');
-const { apiUrl, generateStructure, init, uploadSave } = require('./utils');
+const { apiUrl, generateStructure, init, uploadSave, createBackup, downloadSave, updateManifest } = require('./utils');
 
 const main = async() => {
   console.log(`Git Cloud Save System version ${version}`);
@@ -17,7 +17,7 @@ const main = async() => {
     await fs.access('./settings.json');
   } catch(e) {
     console.log('No settings detected. Starting first time setup...');
-    return init(main);
+    return init(reader, main);
   }
 
   const raw = await fs.readFile('./settings.json');
@@ -42,13 +42,12 @@ const main = async() => {
 
       const folderResponse = await generateStructure(settings);
 
-      if (![200, 201].includes(folderResponse.status)) { // TODO: refactor, ok check failed on 201
+      if (![200, 201].includes(folderResponse.status)) { // TODO: refactor, ok check failed on 201 (folder response is an array)
         console.log('folder response: ', folderResponse);
         console.log('Failed to create folders in repo. Ensure you have correctly configured your auth.');
         process.exit(1);
       }
       return main(); // reinvoke as we need to re-fetch the repo contents
-      // TODO: refactor to have a set of utils instead?
     } else {
       console.log('received: ', repoData);
       console.log('Failed to retrieve repository contents. Ensure the repository exists, and you entered your settings correctly.');
@@ -69,6 +68,7 @@ const main = async() => {
       return main();
     }
     selectedGame = game;
+    const selectedGameBackup = game.backupPath;
 
     console.log('Fetching game manifest, please wait...');
 
@@ -90,26 +90,50 @@ const main = async() => {
     console.log('Manifest content: ', JSON.parse(Buffer.from(manifestData.content, 'base64').toString('ascii')));
 
     try {
-      await fs.access(settings.games[selectedGame]);
+      await fs.access(settings.games[selectedGame].path);
     } catch(e) {
       console.log('Could not access game saves directory.');
       process.exit(1);
     }
 
-    const saves = await fs.readdir(settings.games[selectedGame]);
-    const withMetaData = await Promise.all(saves.map(async(s) => ({name: s, data: await fs.stat(`${settings.games[selectedGame]}/${s}`)})));
+    const saves = await fs.readdir(settings.games[selectedGame].path);
+    const withMetaData = await Promise.all(saves.map(async(s) => ({name: s, data: await fs.stat(`${settings.games[selectedGame].path}/${s}`)})));
     const newestSave = withMetaData.reduce((newest, save) => newest.data.mtime > save.data.mtime ? newest : save);
     console.log('Newest Save: ', newestSave.name);
 
-    if (!manifestData.lastSaved || manifestData.lastSaved < newestSave.data.mtime) {
-      reader.question('Your local save is newer than the one stored in the repo. Would you like to upload it? (Y/N)', async(choice) => {
-        if (choice === 'Y' || choice === 'y') {
-          const response = await uploadSave(settings, selectedGame, newestSave);
+    reader.question('Before we move any files, would you like to backup your saves? (Y/N)\n', async(bChoice) => {
+      if (bChoice === 'Y' || bChoice === 'y') {
+        await createBackup(settings, selectedGameBackup);
+      }
 
-          console.log(response);
-        }
-      })
-    }
+      if (!manifestData.lastSaved || manifestData.lastSaved < newestSave.data.mtime) {
+        reader.question('Your local save is newer than the one stored in the repo. Would you like to upload it? (Y/N)\n', async(choice) => {
+          if (choice === 'Y' || choice === 'y') {
+            const response = await uploadSave(settings, selectedGame, newestSave, manifestData.lastSaved);
+            const otherResponse = await updateManifest(settings, selectedGame);
+
+            console.log(response, otherResponse);
+            if (!response.ok || !otherResponse.ok) {
+              console.log('Failed to upload successfully.');
+              process.exit(1);
+            }
+  
+            console.log('Save uploaded successfully.');
+            process.exit(0);
+          }
+        })
+      }
+  
+      if (manifestData.lastSaved > newestSave.data.mtime) {
+        reader.question('Your local save is older than the one stored in the repo. Would you like to download the latest save? (Y/N)', async(choice) => {
+          if (choice === 'Y' || choice === 'y') {
+            const response = await downloadSave(settings, selectedGame);
+  
+            console.log(response);
+          }
+        })
+      }
+    })
   });
 }
 
