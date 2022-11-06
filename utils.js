@@ -130,7 +130,7 @@ const updateManifest = async(settings, selectedGame) => {
     headers: {
       'Authorization': `Bearer ${settings.auth}`
     },
-    method: 'POST',
+    method: 'PUT',
     body: JSON.stringify({
       message: `${new Date().toISOString()}: Updating ${selectedGame} manifest.`,
       committer: {
