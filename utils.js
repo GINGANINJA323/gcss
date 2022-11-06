@@ -88,8 +88,8 @@ const getFileSha = async(fileName, settings, selectedGame) => {
 const uploadSave = async(settings, selectedGame, file, update) => {
   // first, convert save file contents to a string for transport.
   try {
-    console.log(`${settings.games[selectedGame].path}\\${file.name}`)
-    await fs.access(`${settings.games[selectedGame].path}\\${file.name}`);
+    console.log(`${settings.games[selectedGame].path}/${file.name}`);
+    await fs.access(`${settings.games[selectedGame].path}/${file.name}`);
   } catch(e) {
     console.log('Failed to access save file. Ensure you have entered the correct path.');
     process.exit(1);
