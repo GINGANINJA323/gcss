@@ -5,7 +5,7 @@ const reader = require('readline').createInterface({
 });
 const fs = require('node:fs/promises');
 const fetch = require('node-fetch');
-const { apiUrl, generateStructure, init, uploadSave, createBackup, downloadSave, updateManifest } = require('./utils');
+const { apiUrl, generateStructure, init, uploadSave, createBackup, downloadSave, updateManifest, addNewGame } = require('./utils');
 
 const main = async() => {
   console.log(`Git Cloud Save System version ${version}`);
@@ -42,7 +42,7 @@ const main = async() => {
 
       const folderResponse = await generateStructure(settings);
 
-      if (![200, 201].includes(folderResponse.status)) { // TODO: refactor, ok check failed on 201 (folder response is an array)
+      if (![200, 201].includes(folderResponse.status)) {
         console.log('folder response: ', folderResponse);
         console.log('Failed to create folders in repo. Ensure you have correctly configured your auth.');
         process.exit(1);
@@ -58,9 +58,13 @@ const main = async() => {
 
   console.log('Found: ', repoData.map(f => f.name).join(','));
 
-  reader.question('Enter the name of the game you wish to manage, or type "exit" to leave:\n', async(game) => {
+  reader.question('Enter the name of the game you wish to manage, "exit" to leave, "amend" to add a new game to your settings:\n', async(game) => {
     if (game === 'exit') {
       process.exit(0);
+    }
+
+    if (game === 'amend') {
+      return addNewGame(settings, reader, main);
     }
 
     if (!games.includes(game)) {
@@ -121,6 +125,8 @@ const main = async() => {
             console.log('Save uploaded successfully.');
             process.exit(0);
           }
+
+          return main();
         })
       }
   
@@ -131,8 +137,12 @@ const main = async() => {
   
             console.log(response);
           }
+
+          return main();
         })
       }
+
+      return main();
     })
   });
 }

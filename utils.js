@@ -177,7 +177,8 @@ const createBackup = async(gamePaths) => {
     console.log(saves);
 
     if (saves && saves.length) {
-      const bfName = new Date().toISOString();
+      // use milliseconds for backup name as windows wont accept some characters.
+      const bfName = new Date().getTime();
       try {
         // create a subfolder to keep the backups in so multiple backups can be made.
         await fs.mkdir(`${backupPath}/${bfName}`);
@@ -205,6 +206,40 @@ const createBackup = async(gamePaths) => {
   console.log('Files backed up successfully');
 }
 
+const addNewGame = async(settings, reader, cb) => {
+  const newSettings = {...settings};
+  reader.question('Enter game name:\n', async(game) => {
+    reader.question('Enter game save folder path:\n', async(path) => {
+      reader.question('Enter backup directory:\n', async(backupPath) => {
+      newSettings.games = {
+        ...newSettings.games,
+        [game]: {
+          path: '',
+          backupPath: ''
+        }
+      };
+      newSettings.games[game].path = path;
+      newSettings.games[game].backupPath = backupPath;
+      const stringSettings = JSON.stringify(newSettings);
+      reader.question(`${stringSettings}: Confirm settings? (Y/N)`, async(conf) => {
+        if (conf === 'Y' || conf === 'y') {
+          try {
+            await fs.writeFile('settings.json', stringSettings);
+            await generateStructure({...newSettings, games: { [game]: {
+              path,
+              backupPath
+            }}});
+            cb();
+          } catch(e) {
+            console.log(`Encountered error ${e} when trying to make the settings file.`);
+            process.exit(1);
+          }
+        }
+      });
+    })});
+  });
+}
+
 module.exports = {
   apiUrl,
   generateStructure,
@@ -212,5 +247,6 @@ module.exports = {
   uploadSave,
   downloadSave,
   createBackup,
-  updateManifest
+  updateManifest,
+  addNewGame
 }
