@@ -164,8 +164,45 @@ const downloadSave = async(settings, selectedGame) => {
   return response;
 }
 
-const createBackup = async(settings, selectedGame) => {
-  
+const createBackup = async(gamePaths) => {
+  console.log('Migrating saves to backup path.');
+
+  const { path, backupPath } = gamePaths;
+
+  console.log(gamePaths, path, backupPath);
+
+  try {
+    const saves = await fs.readdir(path);
+
+    console.log(saves);
+
+    if (saves && saves.length) {
+      const bfName = new Date().toISOString();
+      try {
+        // create a subfolder to keep the backups in so multiple backups can be made.
+        await fs.mkdir(`${backupPath}/${bfName}`);
+      } catch(e) {
+        console.log('Failed to create subfolder for backup.');
+        console.log(e);
+        process.exit(1);
+      }
+
+      try {
+        // copy saves directory contents over to new backup folder
+        await fs.cp(path, `${backupPath}/${bfName}`, { recursive: true });
+      } catch(e) {
+        console.log('Failed to copy save files to backup');
+        console.log(e);
+        process.exit(1);
+      }
+    }
+  } catch(e) {
+    console.log('Error reading saves directory. Backup failed.');
+    console.log(e);
+    process.exit(1);
+  }
+
+  console.log('Files backed up successfully');
 }
 
 module.exports = {

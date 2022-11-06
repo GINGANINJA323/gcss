@@ -67,8 +67,8 @@ const main = async() => {
       console.log('Game selected was invalid. Restarting...');
       return main();
     }
+    console.log(selectedGame);
     selectedGame = game;
-    const selectedGameBackup = game.backupPath;
 
     console.log('Fetching game manifest, please wait...');
 
@@ -103,7 +103,7 @@ const main = async() => {
 
     reader.question('Before we move any files, would you like to backup your saves? (Y/N)\n', async(bChoice) => {
       if (bChoice === 'Y' || bChoice === 'y') {
-        await createBackup(settings, selectedGameBackup);
+        await createBackup(settings.games[game]);
       }
 
       if (!manifestData.lastSaved || manifestData.lastSaved < newestSave.data.mtime) {
