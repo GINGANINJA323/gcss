@@ -89,9 +89,10 @@ const main = async() => {
       process.exit(1);
     }
 
-    const manifestData = await manifestResponse.json();
+    const manifestJson = await manifestResponse.json();
+    const manifestData = JSON.parse(Buffer.from(manifestJson.content, 'base64').toString('ascii'));
 
-    console.log('Manifest content: ', JSON.parse(Buffer.from(manifestData.content, 'base64').toString('ascii')));
+    console.log('Manifest content: ', manifestData);
 
     try {
       await fs.access(settings.games[selectedGame].path);
@@ -105,12 +106,19 @@ const main = async() => {
     const newestSave = withMetaData.reduce((newest, save) => newest.data.mtime > save.data.mtime ? newest : save);
     console.log('Newest Save: ', newestSave.name);
 
+    console.log(
+      newestSave.data.mtime, 
+      new Date(manifestData.lastSaved).toISOString(), 
+      new Date(newestSave.data.mtime) < new Date(manifestData.lastSaved), 
+      new Date(newestSave.data.mtime) > new Date(manifestData.lastSaved)
+    );
+
     reader.question('Before we move any files, would you like to backup your saves? (Y/N)\n', async(bChoice) => {
       if (bChoice === 'Y' || bChoice === 'y') {
         await createBackup(settings.games[game]);
       }
 
-      if (!manifestData.lastSaved || manifestData.lastSaved < newestSave.data.mtime) {
+      if (!manifestData.lastSaved || new Date(manifestData.lastSaved) < new Date(newestSave.data.mtime)) {
         reader.question('Your local save is newer than the one stored in the repo. Would you like to upload it? (Y/N)\n', async(choice) => {
           if (choice === 'Y' || choice === 'y') {
             const response = await uploadSave(settings, selectedGame, newestSave, manifestData.lastSaved);
@@ -125,24 +133,32 @@ const main = async() => {
             console.log('Save uploaded successfully.');
             process.exit(0);
           }
-
-          return main();
         })
       }
   
-      if (manifestData.lastSaved > newestSave.data.mtime) {
+      if (new Date(manifestData.lastSaved) > new Date(newestSave.data.mtime)) {
         reader.question('Your local save is older than the one stored in the repo. Would you like to download the latest save? (Y/N)', async(choice) => {
           if (choice === 'Y' || choice === 'y') {
             const response = await downloadSave(settings, selectedGame);
-  
-            console.log(response);
-          }
 
-          return main();
+            console.log(response);
+            const fileData = Buffer.from(response.content, 'base64');
+
+            console.log(fileData);
+
+            try {
+              await fs.writeFile(`${settings.games[selectedGame].path}/${response.name}`, fileData);
+            } catch(e) {
+              console.log('Failed to write save file.');
+              console.log(e);
+              process.exit(1);
+            }
+
+            console.log('File written successfully!');
+            process.exit(0);
+          }
         })
       }
-
-      return main();
     })
   });
 }

@@ -148,9 +148,10 @@ const updateManifest = async(settings, selectedGame) => {
 const downloadSave = async(settings, selectedGame) => {
   try {
     // Make sure directory is accessible
-    await fs.access(`${settings.games[selectedGame]}`);
+    await fs.access(`${settings.games[selectedGame].path}`);
   } catch(e) {
     console.log('Failed to access save directory. Ensure you have entered the correct path.');
+    console.log(e);
     process.exit(1);
   }
 
@@ -161,7 +162,33 @@ const downloadSave = async(settings, selectedGame) => {
     }
   });
 
-  return response;
+  if (!response.ok) {
+    console.log('Failed to retrieve files list.');
+    process.exit(1);
+  }
+
+  const fileJson = await response.json();
+
+  console.log(fileJson);
+  const saveFile = fileJson.filter((f) => f.name !== 'manifest.json')[0];
+
+  console.log(saveFile);
+
+  const fileResponse = await fetch(`${apiUrl}/repos/${settings.owner}/${settings.repo}/contents/${selectedGame}/${saveFile.name}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${settings.auth}`
+    }
+  });
+
+  if (!fileResponse.ok) {
+    console.log('Failed to retrieve file.');
+    process.exit(1);
+  }
+
+  const contents = await fileResponse.json();
+
+  return contents;
 }
 
 const createBackup = async(gamePaths) => {
