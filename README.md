@@ -23,7 +23,12 @@ I am not responsible for damaging or losing save files or other data within your
 
 Run `npm start` or `node index.js` to start the program. From there, the on screen prompts should be enough.
 
-## Backups
+### Settings
+
+When run for the first time, GCSS will run you through a quick setup to establish the repo, user account and token. These are stored in `settings.json`, in the root of
+the project. This can be edited at anytime to make quick changes. To add games, you can also use `amend` when running GCSS to register a new game similar to setup.
+
+### Backups
 
 This program moves save files, which people value. Therefore, before performing an upload or download, you are given the option
 to backup your files. This will copy the entire saves directory specified in your settings to the backup path also specified in your settings.
