@@ -55,7 +55,7 @@ const main = async() => {
     }
   }
 
-  console.log('Found: ', repoData.map(f => f.name).join(','));
+  console.log('Found:', repoData.map(f => f.name).join(', '));
 
   reader.question('Enter the name of the game you wish to manage, "exit" to leave, "amend" to add a new game to your settings:\n', async(game) => {
     if (game === 'exit') {
