@@ -73,7 +73,7 @@ const eMode = async(choice, settings, selectedGame, newestSave, manifestData, cb
     process.exit(0);
   } else {
     console.log('Input not recognised, try again.');
-    eMode(choice, settings, selectedGame, newestSave, manifestData, cb);
+    cb();
   }
 }
 
