@@ -5,7 +5,16 @@ const reader = require('readline').createInterface({
 });
 const fs = require('node:fs/promises');
 const fetch = require('node-fetch');
-const { apiUrl, generateStructure, init, uploadSave, createBackup, downloadSave, updateManifest, addNewGame } = require('./utils');
+const {
+  apiUrl,
+  generateStructure,
+  init, uploadSave,
+  createBackup,
+  downloadSave,
+  updateManifest,
+  addNewGame,
+  eMode
+} = require('./utils');
 
 const main = async() => {
   console.log(`Git Cloud Save System version ${version}`);
@@ -109,25 +118,32 @@ const main = async() => {
         await createBackup(settings.games[game]);
       }
 
-      if (!manifestData.lastSaved || new Date(manifestData.lastSaved) < new Date(newestSave.data.mtime)) {
-        reader.question('Your local save is newer than the one stored in the repo. Would you like to upload it? (Y/N)\n', async(choice) => {
+      const lastSaved = new Date(newestSave.data.mtime);
+
+      if (!manifestData.lastSaved || new Date(manifestData.lastSaved) < lastSaved) {
+        reader.question('Your local save is newer than the one stored in the repo. Would you like to upload it? (Y/N/E)\n', async(choice) => {
           if (choice === 'Y' || choice === 'y') {
             const response = await uploadSave(settings, selectedGame, newestSave, manifestData.lastSaved);
-            const otherResponse = await updateManifest(settings, selectedGame);
+            const manifestResponse = await updateManifest(settings, selectedGame, lastSaved.toISOString());
 
-            if (!response.ok || !otherResponse.ok) {
+            if (!response.ok || !manifestResponse.ok) {
               console.log('Failed to upload successfully.');
               process.exit(1);
             }
   
             console.log('Save uploaded successfully.');
             main();
+          } if (choice === 'e' || choice === 'E') {
+            // User can manually decide to upload or download...
+            reader.question('Upload, download or exit? (U/D/E):\n', (eChoice) => {
+              eMode(eChoice, settings, selectedGame, newestSave, manifestData, main);
+            });
+          } else {
+            main();
           }
         })
-      }
-  
-      if (new Date(manifestData.lastSaved) > new Date(newestSave.data.mtime)) {
-        reader.question('Your local save is older than the one stored in the repo. Would you like to download the latest save? (Y/N)', async(choice) => {
+      } if (new Date(manifestData.lastSaved) > lastSaved) {
+        reader.question('Your local save is older than the one stored in the repo. Would you like to download the latest save? (Y/N/E)', async(choice) => {
           if (choice === 'Y' || choice === 'y') {
             const response = await downloadSave(settings, selectedGame);
             const fileData = Buffer.from(response.content, 'base64');
@@ -142,8 +158,22 @@ const main = async() => {
 
             console.log('File written successfully!');
             main();
+          } if (choice === 'e' || choice === 'E') {
+            // User can manually decide to upload or download...
+            reader.question('Upload, download or exit? (U/D/E)\n', (eChoice) => {
+              eMode(eChoice, settings, selectedGame, newestSave, manifestData, main);
+            });
+          } else {
+            main();
           }
         })
+      } else {
+        console.log('It looks like your save is up to date with the one in the cloud.');
+        console.log('Cloud date:', new Date(manifestData.lastSaved).toISOString());
+        console.log('Local date:', lastSaved);
+        reader.question('Upload, download or exit? (U/D/E):\n', (eChoice) => {
+          eMode(eChoice, settings, selectedGame, newestSave, manifestData, main);
+        });
       }
     })
   });

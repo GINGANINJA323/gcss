@@ -41,6 +41,42 @@ const init = async(reader, cb) => {
   });
 }
 
+const eMode = async(choice, settings, selectedGame, newestSave, manifestData, cb) => {
+  // method to handle edit mode, AKA manual upload or download select for when user wants to better administer cloud save.
+  if (choice === 'U' || choice === 'u') {
+    console.log('Uploading save and updating manifest...');
+    const response = await uploadSave(settings, selectedGame, newestSave, manifestData.lastSaved);
+    const manifestResponse = await updateManifest(settings, selectedGame, new Date(newestSave.data.mtime).toISOString());
+
+    if (!response.ok || !manifestResponse.ok) {
+      console.log('Failed to upload successfully.');
+      process.exit(1);
+    }
+
+    cb(); // go back to main when done...
+  } if (choice === 'D' || choice === 'd') {
+    console.log('Downloading save...');
+    const response = await downloadSave(settings, selectedGame);
+    const fileData = Buffer.from(response.content, 'base64');
+
+    try {
+      await fs.writeFile(`${settings.games[selectedGame].path}/${response.name}`, fileData);
+    } catch(e) {
+      console.log('Failed to write save file.');
+      console.log(e);
+      process.exit(1);
+    }
+
+    console.log('File written successfully!');
+    cb();
+  } if (choice === 'exit' || choice === 'e' || choice === 'E') {
+    process.exit(0);
+  } else {
+    console.log('Input not recognised, try again.');
+    eMode(choice, settings, selectedGame, newestSave, manifestData, cb);
+  }
+}
+
 const generateStructure = async(settings) => {
   const promises = Object.keys(settings.games).map(g => fetch(`${apiUrl}/repos/${settings.owner}/${settings.repo}/contents/${g}/manifest.json`, {
     headers: {
@@ -84,7 +120,7 @@ const getFileSha = async(fileName, settings, selectedGame) => {
   return shaData.sha;
 }
 
-const uploadSave = async(settings, selectedGame, file, update) => {
+const uploadSave = async(settings, selectedGame, file) => {
   // first, convert save file contents to a string for transport.
   try {
     await fs.access(`${settings.games[selectedGame].path}/${file.name}`);
@@ -115,10 +151,10 @@ const uploadSave = async(settings, selectedGame, file, update) => {
   return response;
 }
 
-const updateManifest = async(settings, selectedGame) => {
+const updateManifest = async(settings, selectedGame, fileSaved) => {
   const file = {
     name: 'manifest.json',
-    content: Buffer.from(JSON.stringify({ lastSaved: new Date().toISOString()}))
+    content: Buffer.from(JSON.stringify({ lastSaved: fileSaved}))
   }
   const sha = await getFileSha('manifest.json', settings, selectedGame);
   const response = await fetch(`${apiUrl}/repos/${settings.owner}/${settings.repo}/contents/${selectedGame}/${file.name}`, {
@@ -262,5 +298,6 @@ module.exports = {
   downloadSave,
   createBackup,
   updateManifest,
-  addNewGame
+  addNewGame,
+  eMode
 }
