@@ -81,25 +81,20 @@ const getFileSha = async(fileName, settings, selectedGame) => {
 
   
   const shaData = await response.json();
-  console.log(shaData, response);
   return shaData.sha;
 }
 
 const uploadSave = async(settings, selectedGame, file, update) => {
   // first, convert save file contents to a string for transport.
   try {
-    console.log(`${settings.games[selectedGame].path}/${file.name}`);
     await fs.access(`${settings.games[selectedGame].path}/${file.name}`);
   } catch(e) {
     console.log('Failed to access save file. Ensure you have entered the correct path.');
     process.exit(1);
   }
 
-  console.log(update);
-
   const content = await fs.readFile(`${settings.games[selectedGame].path}/${file.name}`);
   const sha = await getFileSha(file.name, settings, selectedGame);
-  console.log(sha);
 
   const response = await fetch(`${apiUrl}/repos/${settings.owner}/${settings.repo}/contents/${selectedGame}/${file.name}`, {
     headers: {
@@ -168,11 +163,7 @@ const downloadSave = async(settings, selectedGame) => {
   }
 
   const fileJson = await response.json();
-
-  console.log(fileJson);
   const saveFile = fileJson.filter((f) => f.name !== 'manifest.json')[0];
-
-  console.log(saveFile);
 
   const fileResponse = await fetch(`${apiUrl}/repos/${settings.owner}/${settings.repo}/contents/${selectedGame}/${saveFile.name}`, {
     method: 'GET',
@@ -192,16 +183,12 @@ const downloadSave = async(settings, selectedGame) => {
 }
 
 const createBackup = async(gamePaths) => {
-  console.log('Migrating saves to backup path.');
+  console.log('Migrating saves to backup path. This might take some time...');
 
   const { path, backupPath } = gamePaths;
 
-  console.log(gamePaths, path, backupPath);
-
   try {
     const saves = await fs.readdir(path);
-
-    console.log(saves);
 
     if (saves && saves.length) {
       // use milliseconds for backup name as windows wont accept some characters.
@@ -230,7 +217,7 @@ const createBackup = async(gamePaths) => {
     process.exit(1);
   }
 
-  console.log('Files backed up successfully');
+  console.log('Files backed up successfully.');
 }
 
 const addNewGame = async(settings, reader, cb) => {
