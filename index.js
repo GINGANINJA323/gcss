@@ -13,7 +13,8 @@ const {
   downloadSave,
   updateManifest,
   addNewGame,
-  eMode
+  eMode,
+  showError
 } = require('./utils');
 
 const main = async() => {
@@ -41,28 +42,24 @@ const main = async() => {
     },
     method: 'GET'
   });
+
   const repoData = await repoResponse.json();
 
-  const games = repoData.map(f => f.name);
-
-  if (!repoResponse.ok || games.length === 0) {
-    if (repoData.message === 'This repository is empty.' || games.length === 0) {
+  if (!repoResponse.ok) {
+    if (repoData.message === 'This repository is empty.') {
       console.log('Empty repo found. Creating structure for games listed in settings.');
 
       const folderResponse = await generateStructure(settings);
 
       if (![200, 201].includes(folderResponse.status)) {
-        console.log('Failed to create folders in repo. Ensure you have correctly configured your auth.');
-        process.exit(1);
+        return showError(['Failed to create folders in repo. Ensure you have correctly configured your auth.'], reader);
       }
-      return main(); // reinvoke as we need to re-fetch the repo contents
     } else {
-      console.log('received: ', repoData);
-      console.log('Failed to retrieve repository contents. Ensure the repository exists, and you entered your settings correctly.');
-      console.log(`If you need to change your settings, edit "settings.json" at ${__dirname}`);
-      process.exit(1);
+      return showError(['Failed to retrieve repository contents. Ensure the repository exists, and you entered your settings correctly.'], reader);
     }
   }
+
+  const games = repoData.map(f => f.name);
 
   console.log('Found:', repoData.map(f => f.name).join(', '));
 
@@ -91,9 +88,7 @@ const main = async() => {
     });
 
     if (!manifestResponse.ok) {
-      console.log('Manifest: ', manifestResponse);
-      console.log('Failed to get manifest. Please delete your settings and restart this program.');
-      process.exit(1);
+      showError([`Manifest: ${manifestResponse}`, 'Failed to get manifest. Please delete your settings and restart this program.'], reader)
     }
 
     const manifestJson = await manifestResponse.json();
@@ -104,8 +99,7 @@ const main = async() => {
     try {
       await fs.access(settings.games[selectedGame].path);
     } catch(e) {
-      console.log('Could not access game saves directory.');
-      process.exit(1);
+      showError(['Could not access game saves directory.'], reader);
     }
 
     const saves = await fs.readdir(settings.games[selectedGame].path);
@@ -127,8 +121,7 @@ const main = async() => {
             const manifestResponse = await updateManifest(settings, selectedGame, lastSaved.toISOString());
 
             if (!response.ok || !manifestResponse.ok) {
-              console.log('Failed to upload successfully.');
-              process.exit(1);
+              showError(['Failed to upload successfully.'], reader);
             }
   
             console.log('Save uploaded successfully.');
@@ -151,9 +144,7 @@ const main = async() => {
             try {
               await fs.writeFile(`${settings.games[selectedGame].path}/${response.name}`, fileData);
             } catch(e) {
-              console.log('Failed to write save file.');
-              console.log(e);
-              process.exit(1);
+              showError(['Failed to write save file.', e], reader);
             }
 
             console.log('File written successfully!');

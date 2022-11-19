@@ -3,6 +3,18 @@ const fs = require('node:fs/promises');
 
 const apiUrl = 'https://api.github.com';
 
+const showError = (errors, reader) => {
+  let selfReader = reader;
+  if (!reader) {
+    selfReader = require('readline').createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+  }
+  errors.map((e) => console.log('\x1b[31m%s\x1b[0m', e));
+  selfReader.question('Press Ctrl+C to exit.', () => {});
+}
+
 const init = async(reader, cb) => {
   const settings = {};
   reader.question('Enter target repo name (where saves will be kept):\n', (repo) => {
@@ -29,8 +41,7 @@ const init = async(reader, cb) => {
                   await fs.writeFile('settings.json', stringSettings);
                   cb();
                 } catch(e) {
-                  console.log(`Encountered error ${e} when trying to make the settings file.`);
-                  process.exit(1);
+                  showError([`Encountered error ${e} when trying to make the settings file.`], reader);
                 }
               }
             });})
@@ -49,8 +60,7 @@ const eMode = async(choice, settings, selectedGame, newestSave, manifestData, cb
     const manifestResponse = await updateManifest(settings, selectedGame, new Date(newestSave.data.mtime).toISOString());
 
     if (!response.ok || !manifestResponse.ok) {
-      console.log('Failed to upload successfully.');
-      process.exit(1);
+      showError(['Failed to upload successfully.']);
     }
 
     cb(); // go back to main when done...
@@ -62,9 +72,7 @@ const eMode = async(choice, settings, selectedGame, newestSave, manifestData, cb
     try {
       await fs.writeFile(`${settings.games[selectedGame].path}/${response.name}`, fileData);
     } catch(e) {
-      console.log('Failed to write save file.');
-      console.log(e);
-      process.exit(1);
+      showError(['Failed to write save file.', e]);
     }
 
     console.log('File written successfully!');
@@ -111,8 +119,7 @@ const getFileSha = async(fileName, settings, selectedGame) => {
     if (response.status === 404) {
       return '';
     };
-    console.log('Failed to get existing save file SHA.');
-    process.exit(1);
+    showError(['Failed to get existing save file SHA.']);
   }
 
   
@@ -125,8 +132,7 @@ const uploadSave = async(settings, selectedGame, file) => {
   try {
     await fs.access(`${settings.games[selectedGame].path}/${file.name}`);
   } catch(e) {
-    console.log('Failed to access save file. Ensure you have entered the correct path.');
-    process.exit(1);
+    showError(['Failed to access save file. Ensure you have entered the correct path.'])
   }
 
   const content = await fs.readFile(`${settings.games[selectedGame].path}/${file.name}`);
@@ -181,9 +187,7 @@ const downloadSave = async(settings, selectedGame) => {
     // Make sure directory is accessible
     await fs.access(`${settings.games[selectedGame].path}`);
   } catch(e) {
-    console.log('Failed to access save directory. Ensure you have entered the correct path.');
-    console.log(e);
-    process.exit(1);
+    showError(['Failed to access save directory. Ensure you have entered the correct path.', e]);
   }
 
   const response = await fetch(`${apiUrl}/repos/${settings.owner}/${settings.repo}/contents/${selectedGame}`, {
@@ -194,8 +198,7 @@ const downloadSave = async(settings, selectedGame) => {
   });
 
   if (!response.ok) {
-    console.log('Failed to retrieve files list.');
-    process.exit(1);
+    showError(['Failed to retrieve files list.']);
   }
 
   const fileJson = await response.json();
@@ -209,8 +212,7 @@ const downloadSave = async(settings, selectedGame) => {
   });
 
   if (!fileResponse.ok) {
-    console.log('Failed to retrieve file.');
-    process.exit(1);
+    showError(['Failed to retrieve file.'])
   }
 
   const contents = await fileResponse.json();
@@ -233,24 +235,18 @@ const createBackup = async(gamePaths) => {
         // create a subfolder to keep the backups in so multiple backups can be made.
         await fs.mkdir(`${backupPath}/${bfName}`);
       } catch(e) {
-        console.log('Failed to create subfolder for backup.');
-        console.log(e);
-        process.exit(1);
+        showError(['Failed to create subfolder for backup.', e]);
       }
 
       try {
         // copy saves directory contents over to new backup folder
         await fs.cp(path, `${backupPath}/${bfName}`, { recursive: true });
       } catch(e) {
-        console.log('Failed to copy save files to backup');
-        console.log(e);
-        process.exit(1);
+        showError(['Failed to copy save files to backup', e]);
       }
     }
   } catch(e) {
-    console.log('Error reading saves directory. Backup failed.');
-    console.log(e);
-    process.exit(1);
+    showError(['Error reading saves directory. Backup failed.', e]);
   }
 
   console.log('Files backed up successfully.');
@@ -281,8 +277,7 @@ const addNewGame = async(settings, reader, cb) => {
             }}});
             cb();
           } catch(e) {
-            console.log(`Encountered error ${e} when trying to make the settings file.`);
-            process.exit(1);
+            showError([`Encountered error ${e} when trying to make the settings file.`], reader);
           }
         }
       });
@@ -299,5 +294,6 @@ module.exports = {
   createBackup,
   updateManifest,
   addNewGame,
-  eMode
+  eMode,
+  showError
 }
