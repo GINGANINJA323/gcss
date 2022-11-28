@@ -14,19 +14,23 @@ I am not responsible for damaging or losing save files or other data within your
 2. A [Github](https://github.com/) account 
 3. A Personal Access Token (see [Github Setup](#github-setup))
 4. (Optional) [Git](https://git-scm.com/download)
+5. (Optional) [pkg](https://www.npmjs.com/package/pkg)
 
 ## Installation
 
 ### Normal Installation
 
-1. Download the code using the 'Download as ZIP' button under 'Clone'.
-2. Ensure you have the dependencies installed and working.
-3. Navigate to the location where you cloned the project.
-4. Run `npm install` to gather the required Node packages.
+1. Navigate to the latest release page.
+2. Download the executable for your platform.
+3. Make sure to place the executable in it's own folder, as it generates a settings file that should be in an easily reachable place.
+4. Run the executable, and a terminal window will open.
 
 ### Developer Installation
 
-Same as normal, but run `git clone https://github.com/GINGANINJA323/gcss.git` instead of downloading the code through Github.
+1. Run `git clone https://github.com/GINGANINJA323/gcss.git`.
+2. Ensure you have the dependencies installed and working.
+3. Navigate to the location where you cloned the project.
+4. Run `npm install` to gather the required Node packages.
 
 ## Usage
 
@@ -82,3 +86,5 @@ Permissions for the token can be edited anytime, so this can be done after GCSS 
 
 This program is written in NodeJS, and uses [Node-Fetch](https://github.com/node-fetch/node-fetch) for HTTPS requests. It uses the Github APIs for interacting
 with repositories.
+
+To build the distributable executable using `npm run build`, [pkg](https://www.npmjs.com/package/pkg) needs to be installed.
