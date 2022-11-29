@@ -252,9 +252,9 @@ const createBackup = async(gamePaths) => {
   console.log('Files backed up successfully.');
 }
 
-const addNewGame = async(settings, reader, cb) => {
+const addNewGame = async(settings, reader, cb, suggestedOptions = {}) => {
   const newSettings = {...settings};
-  reader.question('Enter game name:\n', async(game) => {
+  reader.question(`Enter game name ${suggestedOptions.name ? `(${suggestedOptions.name})` : ''}:\n`, async(game) => {
     reader.question('Enter game save folder path:\n', async(path) => {
       reader.question('Enter backup directory:\n', async(backupPath) => {
       newSettings.games = {

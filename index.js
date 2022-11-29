@@ -96,6 +96,12 @@ const main = async() => {
 
     console.log('Manifest content: ', manifestData);
 
+    if (!settings.games[selectedGame]) {
+      // If the game is not in setting but exists in the repo, run amend
+      console.log('Game not detected in settings...');
+      return addNewGame(settings, reader, main, { name: selectedGame });
+    }
+
     try {
       await fs.access(settings.games[selectedGame].path);
     } catch(e) {
