@@ -21,7 +21,7 @@ const init = async(reader, cb) => {
     settings.repo = repo;
     reader.question('Enter GitHub username (must be owner of the target repo):\n', (owner) => {
       settings.owner = owner;
-      reader.question('Enter repo auth key (private repos):\n', (auth) => {
+      reader.question('Enter GitHub Personal Access Token:\n', (auth) => {
         settings.auth = auth;
         reader.question('Enter game name:\n', (game) => {
           reader.question('Enter game save folder path:\n', (path) => {
