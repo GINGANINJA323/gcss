@@ -8,7 +8,8 @@ const fetch = require('node-fetch');
 const {
   apiUrl,
   generateStructure,
-  init, uploadSave,
+  init,
+  uploadSave,
   createBackup,
   downloadSave,
   updateManifest,
