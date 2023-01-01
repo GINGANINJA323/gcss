@@ -122,7 +122,7 @@ const main = async() => {
       const lastSaved = new Date(newestSave.data.mtime);
 
       if (!manifestData.lastSaved || new Date(manifestData.lastSaved) < lastSaved) {
-        reader.question('Your local save is newer than the one stored in the repo. Would you like to upload it? (Y/N/E)\n', async(choice) => {
+        return reader.question('Your local save is newer than the one stored in the repo. Would you like to upload it? (Y/N/E)\n', async(choice) => {
           if (choice === 'Y' || choice === 'y') {
             const response = await uploadSave(settings, selectedGame, newestSave, manifestData.lastSaved);
             const manifestResponse = await updateManifest(settings, selectedGame, lastSaved.toISOString());
@@ -143,7 +143,7 @@ const main = async() => {
           }
         })
       } if (new Date(manifestData.lastSaved) > lastSaved) {
-        reader.question('Your local save is older than the one stored in the repo. Would you like to download the latest save? (Y/N/E)', async(choice) => {
+        return reader.question('Your local save is older than the one stored in the repo. Would you like to download the latest save? (Y/N/E)', async(choice) => {
           if (choice === 'Y' || choice === 'y') {
             const response = await downloadSave(settings, selectedGame);
             const fileData = Buffer.from(response.content, 'base64');
