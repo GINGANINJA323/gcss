@@ -1,6 +1,6 @@
 {
   "name": "gcss",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Use a git repo to sync saves remotely",
   "main": "./index.js",
   "bin": "./index.js",
